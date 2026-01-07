@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Cracking Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        main {
+            padding: 40px 20px;
+        }
+        
+        .intro {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f7f7f7;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .intro h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .intro p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .demos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .demo-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .demo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        
+        .demo-card h3 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        .demo-card p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .demo-card .status {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #ffd700;
+            color: #333;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .demo-card.available .status {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .demo-card[aria-disabled="true"] {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        
+        .demo-card[aria-disabled="true"]:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+        
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <script>
+        // Prevent navigation for disabled demo cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const disabledLinks = document.querySelectorAll('a[aria-disabled="true"]');
+            disabledLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Password Cracking Demo</h1>
+            <p>Educational demonstrations of password attack techniques</p>
+        </header>
+        
+        <main>
+            <div class="intro">
+                <h2>Welcome!</h2>
+                <p>
+                    This site contains browser-based demonstrations of common password cracking techniques. 
+                    These demos are designed for educational purposes to help understand the importance of 
+                    strong passwords and secure authentication practices.
+                </p>
+            </div>
+            
+            <h2 style="margin-bottom: 20px; color: #333;">Available Demonstrations</h2>
+            
+            <div class="demos">
+                <a href="brute-force.html" class="demo-card" aria-disabled="true" role="button">
+                    <h3>🔨 Brute Force Attack</h3>
+                    <p>
+                        A brute force attack systematically tries every possible combination of characters 
+                        until the correct password is found. This demo shows how computational power can 
+                        crack simple passwords.
+                    </p>
+                    <span class="status">Coming Soon</span>
+                </a>
+                
+                <a href="dictionary-attack.html" class="demo-card" aria-disabled="true" role="button">
+                    <h3>📚 Dictionary Attack</h3>
+                    <p>
+                        A dictionary attack uses a pre-compiled list of common words and passwords to 
+                        attempt to crack a password. This is often faster and more efficient than brute 
+                        force for common passwords.
+                    </p>
+                    <span class="status">Coming Soon</span>
+                </a>
+            </div>
+        </main>
+        
+        <footer>
+            <p>
+                &copy; 2025 Bassaleg School | 
+                <a href="https://github.com/Bassaleg-School/PasswordCrackingDemo" target="_blank" rel="noopener noreferrer" aria-label="View on GitHub (opens in new tab)">View on GitHub</a>
+            </p>
+            <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                For educational purposes only. Please use responsibly.
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
