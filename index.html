@@ -117,6 +117,16 @@
             color: white;
         }
         
+        .demo-card[aria-disabled="true"] {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        
+        .demo-card[aria-disabled="true"]:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
         footer {
             background: #333;
             color: white;
@@ -134,6 +144,17 @@
             text-decoration: underline;
         }
     </style>
+    <script>
+        // Prevent navigation for disabled demo cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const disabledLinks = document.querySelectorAll('a[aria-disabled="true"]');
+            disabledLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                });
+            });
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -155,7 +176,7 @@
             <h2 style="margin-bottom: 20px; color: #333;">Available Demonstrations</h2>
             
             <div class="demos">
-                <a href="brute-force.html" class="demo-card">
+                <a href="brute-force.html" class="demo-card" aria-disabled="true" role="button">
                     <h3>🔨 Brute Force Attack</h3>
                     <p>
                         A brute force attack systematically tries every possible combination of characters 
@@ -165,7 +186,7 @@
                     <span class="status">Coming Soon</span>
                 </a>
                 
-                <a href="dictionary-attack.html" class="demo-card">
+                <a href="dictionary-attack.html" class="demo-card" aria-disabled="true" role="button">
                     <h3>📚 Dictionary Attack</h3>
                     <p>
                         A dictionary attack uses a pre-compiled list of common words and passwords to 
@@ -180,7 +201,7 @@
         <footer>
             <p>
                 &copy; 2026 Bassaleg School | 
-                <a href="https://github.com/Bassaleg-School/PasswordCrackingDemo" target="_blank">View on GitHub</a>
+                <a href="https://github.com/Bassaleg-School/PasswordCrackingDemo" target="_blank" rel="noopener noreferrer" aria-label="View on GitHub (opens in new tab)">View on GitHub</a>
             </p>
             <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
                 For educational purposes only. Please use responsibly.
