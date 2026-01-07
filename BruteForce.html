@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brute Force Attack Demonstrator | Bassaleg CS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for the 'hacking' aesthetic */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Animation for the working indicator */
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-hack { animation: pulse-red 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 min-h-screen font-sans flex flex-col items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <main class="w-full max-w-2xl bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
+        
+        <!-- Header -->
+        <header class="bg-indigo-600 p-6 text-center">
+            <h1 class="text-3xl font-bold text-white">Brute Force Demonstrator</h1>
+            <p class="text-indigo-200 mt-2 text-sm">GCSE Computer Science / KS3 Digital Technology</p>
+        </header>
+
+        <!-- Content Area -->
+        <div class="p-8 space-y-6">
+            
+            <!-- Instructions -->
+            <div class="bg-slate-700/50 p-4 rounded-lg border-l-4 border-indigo-500">
+                <h2 class="text-lg font-semibold text-white mb-2">How it works:</h2>
+                <p class="text-slate-300 text-sm">
+                    Enter an alphanumeric password (A-Z, a-z, 0-9). 
+                    <br>• <strong>1-6 Characters:</strong> The system will attempt to really crack it.
+                    <br>• <strong>7+ Characters:</strong> The system will calculate the estimated time (to save your browser from freezing!).
+                </p>
+            </div>
+
+            <!-- Input Section -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input type="text" id="targetPassword" placeholder="Enter password..." maxlength="16"
+                    class="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono tracking-wider">
+                <button onclick="startCrack()" id="crackBtn"
+                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-lg flex items-center justify-center gap-2">
+                    <span>CRACK!</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Error Message -->
+            <p id="errorMsg" class="text-red-400 text-sm hidden font-bold text-center"></p>
+
+            <!-- Results Dashboard -->
+            <div id="dashboard" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                
+                <!-- Current Attempt Display -->
+                <div class="bg-black rounded-lg p-4 border border-slate-600 col-span-1 md:col-span-2 text-center">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Current Attempt</p>
+                    <div id="currentGuess" class="font-mono text-3xl text-green-400 break-all min-h-[40px]">---</div>
+                </div>
+
+                <!-- Attempts Counter -->
+                <div class="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Total Attempts</p>
+                    <div id="attemptCount" class="font-mono text-2xl text-white">0</div>
+                </div>
+
+                <!-- Timer -->
+                <div class="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Time Elapsed / Estimated</p>
+                    <div id="timerDisplay" class="font-mono text-2xl text-white">0.00s</div>
+                </div>
+
+                <!-- Status -->
+                <div class="bg-slate-700 rounded-lg p-4 border border-slate-600 col-span-1 md:col-span-2">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Status</p>
+                    <div id="statusMessage" class="text-white font-semibold">Waiting for input...</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="mt-8 text-slate-500 text-sm">
+        Generic Teaching Gem &bull; Curriculum for Wales Support
+    </footer>
+
+    <script>
+        // Configuration
+        // Common characters used in simple brute force
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; 
+        const charsetArray = charset.split('');
+        const base = charset.length; // 62 characters
+
+        let isRunning = false;
+        let startTime;
+        let timerInterval;
+
+        function startCrack() {
+            const input = document.getElementById('targetPassword').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const dashboard = document.getElementById('dashboard');
+            const crackBtn = document.getElementById('crackBtn');
+            
+            // Input Validation
+            if (!input) {
+                errorMsg.textContent = "Please enter a password first.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            // Check for characters outside our character set
+            const invalidChars = input.split('').filter(char => !charset.includes(char));
+            if (invalidChars.length > 0) {
+                errorMsg.textContent = "Please use only alphanumeric characters (a-z, A-Z, 0-9).";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // Reset UI
+            errorMsg.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            crackBtn.disabled = true;
+            crackBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            document.getElementById('attemptCount').innerText = "0";
+            document.getElementById('timerDisplay').innerText = "0.00s";
+            document.getElementById('statusMessage').innerHTML = '<span class="text-yellow-400 animate-hack">Attacking...</span>';
+            document.getElementById('statusMessage').className = "text-yellow-400 font-semibold";
+            
+            // Logic Split: Real Crack vs Calculation
+            // We use 6 as the cutoff. 
+            // Javascript on a browser might choke on 7+, so we calculate for 7+.
+            if (input.length <= 6) {
+                performRealCrack(input);
+            } else {
+                performCalculation(input);
+            }
+        }
+
+        // MODE 1: Real Brute Force (Recursive simulation)
+        async function performRealCrack(target) {
+            startTime = performance.now();
+            let attempts = 0;
+            
+            let currentCombination = new Array(target.length).fill(0); // Indices of charset
+            
+            function processChunk() {
+                const start = performance.now();
+                // Run for 15ms blocks (60fps) to keep UI responsive
+                while (performance.now() - start < 15) { 
+                    attempts++;
+                    
+                    // Build string from indices
+                    let guess = "";
+                    for(let i=0; i<target.length; i++) {
+                        guess += charsetArray[currentCombination[i]];
+                    }
+
+                    if (guess === target) {
+                        finish(true, guess, attempts);
+                        return;
+                    }
+
+                    // Increment indices (like an odometer)
+                    let position = target.length - 1;
+                    while (position >= 0) {
+                        currentCombination[position]++;
+                        if (currentCombination[position] < base) {
+                            break;
+                        }
+                        currentCombination[position] = 0;
+                        position--;
+                    }
+                    
+                    // If position < 0, we overflowed (shouldn't happen if target is found)
+                    if (position < 0) return; 
+                }
+                
+                // Update UI
+                const timeNow = ((performance.now() - startTime) / 1000).toFixed(2);
+                document.getElementById('timerDisplay').innerText = timeNow + "s";
+                document.getElementById('attemptCount').innerText = attempts.toLocaleString();
+                
+                // Show current guess (only update DOM occasionally to save speed)
+                let visualGuess = "";
+                for(let i=0; i<target.length; i++) visualGuess += charsetArray[currentCombination[i]];
+                document.getElementById('currentGuess').innerText = visualGuess;
+
+                // Schedule next chunk
+                requestAnimationFrame(processChunk);
+            }
+
+            processChunk();
+        }
+
+        // MODE 2: Calculation (Maths)
+        function performCalculation(target) {
+            // Permutations = 62^L
+            const combinations = Math.pow(base, target.length);
+            
+            // Assume a modern standard PC can do roughly 1 billion checks per second (high end CPU/GPU)
+            // Or use a "Web Browser" speed which is slower. 
+            // Let's use a realistic "Hacker with a GPU rig" speed: 10,000,000,000 / sec
+            const speedPerSecond = 1000000000; // 1 Billion/sec
+            
+            const estimatedSeconds = combinations / speedPerSecond;
+            
+            document.getElementById('currentGuess').innerText = "CALCULATING...";
+            document.getElementById('statusMessage').innerText = "Password too long for browser demo.";
+            
+            let displayTime = "";
+            
+            if (estimatedSeconds < 60) displayTime = estimatedSeconds.toFixed(2) + " seconds";
+            else if (estimatedSeconds < 3600) displayTime = (estimatedSeconds/60).toFixed(2) + " minutes";
+            else if (estimatedSeconds < 86400) displayTime = (estimatedSeconds/3600).toFixed(2) + " hours";
+            else if (estimatedSeconds < 31536000) displayTime = (estimatedSeconds/86400).toFixed(2) + " days";
+            else displayTime = (estimatedSeconds/31536000).toFixed(0) + " years";
+
+            // Artificial delay to build suspense
+            setTimeout(() => {
+                document.getElementById('attemptCount').innerText = combinations.toLocaleString('en-GB', { notation: "compact" });
+                document.getElementById('timerDisplay').innerText = displayTime;
+                document.getElementById('currentGuess').innerText = "Maths required.";
+                document.getElementById('currentGuess').className = "font-mono text-3xl text-indigo-400";
+                
+                finish(false, target, combinations);
+            }, 1500);
+        }
+
+        function finish(wasReal, secret, attempts) {
+            const btn = document.getElementById('crackBtn');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            
+            const status = document.getElementById('statusMessage');
+            if (wasReal) {
+                status.innerHTML = `<span class="text-green-400">CRACKED! Password is: ${secret}</span>`;
+                status.className = "text-green-400 font-bold text-lg";
+                document.getElementById('currentGuess').classList.add('text-red-500'); // Flash effect could go here
+            } else {
+                status.innerHTML = `<span class="text-indigo-400">Estimation Complete.</span>`;
+            }
+        }
+
+        function generateRandomString(length) {
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += charsetArray[Math.floor(Math.random() * base)];
+            }
+            return result;
+        }
+
+    </script>
+</body>
+</html>
