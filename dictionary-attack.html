@@ -65,7 +65,6 @@
                 </div>
 
                 <div class="text-slate-400 text-xs">
-                    Note: For browser performance, this demo loads a capped number of words.
                     <span class="font-mono" id="capInfo"></span>
                 </div>
             </section>
@@ -117,7 +116,7 @@
     <script>
         // Configuration
         const WORDLIST_GZ_URL = "wordlists/rockyou.txt.gz";
-        const MAX_WORDS_TO_LOAD = 300000; // cap for browser memory/performance
+        const MAX_WORDS_TO_LOAD = Infinity; // no limit
 
         // Profanity filter
         // Intentionally kept minimal and non-hate-based.
@@ -145,7 +144,7 @@
         let isRunning = false;
         let startTime = 0;
 
-        document.getElementById('capInfo').innerText = `(cap: ${MAX_WORDS_TO_LOAD.toLocaleString('en-GB')} words)`;
+        document.getElementById('capInfo').innerText = `(no word limit)`;
 
         function setLoadStatus(text, tone) {
             const el = document.getElementById('loadStatus');
