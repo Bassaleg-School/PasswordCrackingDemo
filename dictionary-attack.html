@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictionary Attack Demonstrator | Bassaleg CS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Gzip inflate for browser (used to decompress wordlists/rockyou.txt.gz) -->
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        @keyframes pulse-yellow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.55; }
+        }
+        .animate-working { animation: pulse-yellow 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 min-h-screen font-sans flex flex-col items-center justify-center p-4">
+
+    <main class="w-full max-w-2xl bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
+        <header class="bg-indigo-600 p-6 text-center">
+            <h1 class="text-3xl font-bold text-white">Dictionary Attack Demonstrator</h1>
+            <p class="text-indigo-200 mt-2 text-sm">GCSE Computer Science / KS3 Digital Technology</p>
+        </header>
+
+        <div class="p-8 space-y-6">
+            <div class="bg-slate-700/50 p-4 rounded-lg border-l-4 border-indigo-500">
+                <h2 class="text-lg font-semibold text-white mb-2">How it works:</h2>
+                <p class="text-slate-300 text-sm">
+                    A dictionary attack tries passwords from a list of common passwords/words.
+                    <br>• This demo uses a gzipped version of the <strong>rockyou</strong> wordlist.
+                    <br>• The <strong>Current Attempt</strong> display uses a live profanity filter so inappropriate words are never shown.
+                </p>
+            </div>
+
+            <!-- Load Panel -->
+            <section class="bg-slate-900/60 border border-slate-700 rounded-lg p-5 space-y-3" aria-label="Dictionary loader">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-white font-semibold">Step 1: Load the dictionary</h2>
+                        <p class="text-slate-300 text-sm">Fetches and decompresses <span class="font-mono">wordlists/rockyou.txt.gz</span> in your browser.</p>
+                    </div>
+                    <button id="loadBtn" onclick="loadDictionary()"
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow flex items-center justify-center">
+                        Load
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+                        <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Status</p>
+                        <div id="loadStatus" class="text-white font-semibold">Not loaded</div>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+                        <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Loaded Words</p>
+                        <div id="loadedCount" class="font-mono text-xl text-white">0</div>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+                        <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Filtered Out</p>
+                        <div id="filteredCount" class="font-mono text-xl text-white">0</div>
+                    </div>
+                </div>
+
+                <div class="text-slate-400 text-xs">
+                    Note: For browser performance, this demo loads a capped number of words.
+                    <span class="font-mono" id="capInfo"></span>
+                </div>
+            </section>
+
+            <!-- Input Section -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input type="text" id="targetPassword" placeholder="Enter password..." maxlength="16"
+                    class="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono tracking-wider">
+                <button onclick="startAttack()" id="attackBtn" disabled
+                    class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-3 px-8 rounded-lg transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span>ATTACK</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 012 2v2m-4 0V8a2 2 0 012-2m0 10v2m0-2a2 2 0 012-2v-2m-4 0v2a2 2 0 012 2m6-6h2m-2 0a2 2 0 01-2 2h-2m0-4h2a2 2 0 012 2M6 12H4m2 0a2 2 0 012-2h2m0 4H8a2 2 0 01-2-2z" />
+                    </svg>
+                </button>
+            </div>
+
+            <p id="errorMsg" class="text-red-400 text-sm hidden font-bold text-center"></p>
+
+            <!-- Results Dashboard -->
+            <div id="dashboard" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                <div class="bg-black rounded-lg p-4 border border-slate-600 col-span-1 md:col-span-2 text-center">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Current Attempt</p>
+                    <div id="currentGuess" class="font-mono text-3xl text-green-400 break-all min-h-[40px]">---</div>
+                </div>
+
+                <div class="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Total Attempts</p>
+                    <div id="attemptCount" class="font-mono text-2xl text-white">0</div>
+                </div>
+
+                <div class="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Time Elapsed</p>
+                    <div id="timerDisplay" class="font-mono text-2xl text-white">0.00s</div>
+                </div>
+
+                <div class="bg-slate-700 rounded-lg p-4 border border-slate-600 col-span-1 md:col-span-2">
+                    <p class="text-slate-400 text-xs uppercase tracking-widest mb-1">Status</p>
+                    <div id="statusMessage" class="text-white font-semibold">Waiting for dictionary load...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-8 text-slate-500 text-sm">
+        Generic Teaching Gem &bull; Curriculum for Wales Support
+    </footer>
+
+    <script>
+        // Configuration
+        const WORDLIST_GZ_URL = "wordlists/rockyou.txt.gz";
+        const MAX_WORDS_TO_LOAD = 300000; // cap for browser memory/performance
+
+        // Profanity filter
+        // Intentionally kept minimal and non-hate-based.
+        const bannedSubstrings = [
+            "fuck",
+            "shit",
+            "cunt",
+            "bitch",
+            "asshole",
+            "bastard",
+            "dick",
+            "pussy"
+        ];
+
+        function containsProfanity(word) {
+            const lower = word.toLowerCase();
+            for (const bad of bannedSubstrings) {
+                if (lower.includes(bad)) return true;
+            }
+            return false;
+        }
+
+        let dictionary = [];
+        let dictionaryLoaded = false;
+        let isRunning = false;
+        let startTime = 0;
+
+        document.getElementById('capInfo').innerText = `(cap: ${MAX_WORDS_TO_LOAD.toLocaleString('en-GB')} words)`;
+
+        function setLoadStatus(text, tone) {
+            const el = document.getElementById('loadStatus');
+            el.textContent = text;
+            el.className = tone;
+        }
+
+        function setError(text) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = text;
+            errorMsg.classList.remove('hidden');
+        }
+
+        function clearError() {
+            document.getElementById('errorMsg').classList.add('hidden');
+        }
+
+        async function loadDictionary() {
+            if (dictionaryLoaded) return;
+
+            clearError();
+            const loadBtn = document.getElementById('loadBtn');
+            loadBtn.disabled = true;
+            loadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            document.getElementById('loadedCount').innerText = "0";
+            document.getElementById('filteredCount').innerText = "0";
+            setLoadStatus("Fetching...", "text-yellow-300 font-semibold animate-working");
+
+            try {
+                if (!window.pako) {
+                    throw new Error("Decompression library (pako) failed to load.");
+                }
+
+                const response = await fetch(WORDLIST_GZ_URL);
+                if (!response.ok) throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+                if (!response.body) throw new Error("Streaming fetch not supported in this browser.");
+
+                setLoadStatus("Decompressing...", "text-yellow-300 font-semibold animate-working");
+
+                const reader = response.body.getReader();
+                const inflator = new window.pako.Inflate({ to: 'string' });
+
+                let kept = 0;
+                let filtered = 0;
+                let leftover = "";
+
+                const updateCounters = () => {
+                    document.getElementById('loadedCount').innerText = kept.toLocaleString('en-GB');
+                    document.getElementById('filteredCount').innerText = filtered.toLocaleString('en-GB');
+                };
+
+                const consumeText = (textChunk) => {
+                    if (!textChunk) return;
+
+                    const combined = leftover + textChunk;
+                    const lines = combined.split('\n');
+                    leftover = lines.pop() ?? "";
+
+                    for (let line of lines) {
+                        if (kept >= MAX_WORDS_TO_LOAD) return;
+
+                        line = line.replace(/\r$/, "");
+                        if (!line) continue;
+
+                        if (containsProfanity(line)) {
+                            filtered++;
+                            continue;
+                        }
+
+                        dictionary.push(line);
+                        kept++;
+                    }
+                };
+
+                // Inflate stream
+                while (kept < MAX_WORDS_TO_LOAD) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    inflator.push(value, false);
+                    if (inflator.err) throw new Error(inflator.msg || "Decompression error");
+
+                    // inflator.result can be string (for 'to: string'), but may be null sometimes
+                    consumeText(inflator.result);
+                    inflator.result = '';
+
+                    if (kept % 25000 === 0) updateCounters();
+                }
+
+                inflator.push(new Uint8Array(0), true);
+                if (inflator.err) throw new Error(inflator.msg || "Decompression error");
+                consumeText(inflator.result);
+
+                // Final leftover (if the file doesn't end with newline)
+                if (leftover && kept < MAX_WORDS_TO_LOAD) {
+                    const lastLine = leftover.replace(/\r$/, "");
+                    if (lastLine) {
+                        if (containsProfanity(lastLine)) filtered++;
+                        else {
+                            dictionary.push(lastLine);
+                            kept++;
+                        }
+                    }
+                }
+
+                // Stop the stream early if we capped out
+                if (kept >= MAX_WORDS_TO_LOAD) {
+                    try { await reader.cancel(); } catch (_) {}
+                }
+
+                updateCounters();
+
+                dictionaryLoaded = true;
+                setLoadStatus("Loaded", "text-green-300 font-semibold");
+
+                const attackBtn = document.getElementById('attackBtn');
+                attackBtn.disabled = false;
+
+                const status = document.getElementById('statusMessage');
+                status.textContent = `Dictionary loaded (${dictionary.length.toLocaleString('en-GB')} words). Ready to attack.`;
+
+            } catch (err) {
+                setLoadStatus("Failed", "text-red-300 font-semibold");
+                setError(err?.message || "Failed to load dictionary.");
+
+                // reset state
+                dictionary = [];
+                dictionaryLoaded = false;
+
+                loadBtn.disabled = false;
+                loadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function startAttack() {
+            if (isRunning) return;
+            clearError();
+
+            if (!dictionaryLoaded || dictionary.length === 0) {
+                setError("Load the dictionary first.");
+                return;
+            }
+
+            const target = document.getElementById('targetPassword').value;
+            if (!target) {
+                setError("Please enter a password first.");
+                return;
+            }
+
+            isRunning = true;
+            startTime = performance.now();
+
+            const dashboard = document.getElementById('dashboard');
+            dashboard.classList.remove('hidden');
+
+            const attackBtn = document.getElementById('attackBtn');
+            attackBtn.disabled = true;
+
+            document.getElementById('attemptCount').innerText = "0";
+            document.getElementById('timerDisplay').innerText = "0.00s";
+            document.getElementById('currentGuess').innerText = "---";
+
+            const status = document.getElementById('statusMessage');
+            status.innerHTML = '<span class="text-yellow-300 animate-working">Attacking...</span>';
+            status.className = "text-yellow-300 font-semibold";
+
+            let attempts = 0;
+            let index = 0;
+
+            function processChunk() {
+                const chunkStart = performance.now();
+
+                while (performance.now() - chunkStart < 15) {
+                    if (index >= dictionary.length) {
+                        finish(false, "Not found in loaded dictionary.", attempts);
+                        return;
+                    }
+
+                    const guess = dictionary[index++];
+                    attempts++;
+
+                    // Current Attempt window should never show profanity.
+                    // Dictionary is pre-filtered, but keep a live guard just in case.
+                    if (!containsProfanity(guess)) {
+                        document.getElementById('currentGuess').innerText = guess;
+                    }
+
+                    if (guess === target) {
+                        finish(true, guess, attempts);
+                        return;
+                    }
+                }
+
+                const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+                document.getElementById('timerDisplay').innerText = elapsed + "s";
+                document.getElementById('attemptCount').innerText = attempts.toLocaleString('en-GB');
+
+                requestAnimationFrame(processChunk);
+            }
+
+            requestAnimationFrame(processChunk);
+        }
+
+        function finish(found, foundValue, attempts) {
+            isRunning = false;
+
+            const attackBtn = document.getElementById('attackBtn');
+            attackBtn.disabled = false;
+
+            const status = document.getElementById('statusMessage');
+            if (found) {
+                status.innerHTML = `<span class="text-green-400">CRACKED! Password is: ${escapeHtml(foundValue)}</span>`;
+                status.className = "text-green-400 font-bold text-lg";
+            } else {
+                status.innerHTML = `<span class="text-indigo-300">${escapeHtml(foundValue)}</span>`;
+                status.className = "text-indigo-300 font-semibold";
+            }
+
+            document.getElementById('attemptCount').innerText = attempts.toLocaleString('en-GB');
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+    </script>
+</body>
+</html>
